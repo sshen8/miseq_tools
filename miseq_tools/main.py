@@ -4,14 +4,16 @@ from .quant_kapa import kapaquant
 from .quant_qubit import qubitquant
 from .pooling import pooling
 from .quant_combine import quant_combine
+from .demux_stats import demux
 import logging
+import matplotlib.pyplot as plt
 
 def main():
-    logging.basicConfig(format='%(levelname)-10s%(message)s', level=logging.INFO)
-
-    parser = argparse.ArgumentParser(description="Tools for running Miseq")
+    parser = argparse.ArgumentParser(description="Tools for running Miseq", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # subparser for sample sheet
-    subparsers = parser.add_subparsers()
+    subparsers = parser.add_subparsers(required=True)
+    parser.add_argument("--mpl-style", help="Matplotlib style to use", default="simon")
+    parser.add_argument("--log-level", help="Log level", default="INFO", choices=logging._nameToLevel.keys())
     parser_samplesheet = subparsers.add_parser("sheet", help="Format sample sheet for Miseq")
     parser_samplesheet.set_defaults(func=format_samplesheet)
     parser_samplesheet.add_argument("fname_in", help="Input file")
@@ -48,6 +50,17 @@ def main():
         pooling(samplesheet=kwargs['samplesheet'], quant_csv="quant_combined.csv")
     parser_pre.set_defaults(func=pipeline_pre)
 
+    parser_demux = subparsers.add_parser("demux", help="Demuxing stats")
+    parser_demux.set_defaults(func=demux)
+    parser_demux.add_argument("samplesheet", help="Sample sheet to use")
+    parser_demux.add_argument("stats", help="Stats.json file from Miseq")
+
     args = parser.parse_args()
+
+    plt.style.use(args.mpl_style)
+    del args.mpl_style
+    logging.basicConfig(format='%(levelname)-10s%(message)s', level=args.log_level)
+    del args.log_level
     kwargs = vars(args)
+
     args.func(**{k: v for k, v in kwargs.items() if k != "func"})
