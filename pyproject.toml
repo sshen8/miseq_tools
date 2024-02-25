@@ -12,6 +12,12 @@ dependencies = [
     "matplotlib",
     "pandas",
     "scikit-learn",
+    "biopython",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest"
 ]
 
 [project.scripts]

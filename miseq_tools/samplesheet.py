@@ -1,7 +1,24 @@
 import pandas as pd
-import warnings
+import logging
 import datetime
 from .utils import parse_samplesheet
+import os
+import Bio.Seq
+
+def check_indexes(df):
+    dir_known_i7 = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'known_barcodes', 'i7')
+    known_i7 = pd.concat([pd.read_csv(os.path.join(dir_known_i7, fname), header=None, index_col=0, delimiter="\t" if fname.endswith('.tsv') else ",").squeeze() for fname in os.listdir(dir_known_i7)])
+    dir_known_i5 = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'known_barcodes', 'i5')
+    known_i5 = pd.concat([pd.read_csv(os.path.join(dir_known_i5, fname), header=None, index_col=0, delimiter="\t" if fname.endswith('.tsv') else ",").squeeze() for fname in os.listdir(dir_known_i5)])
+    # i7 rev comp
+    if (errors := df['index'].isin(known_i7.apply(Bio.Seq.reverse_complement))).any():
+        logging.warning(f'i7 might need to be reverse complemented for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
+    # i5 rev comp
+    if (errors := df['index2'].isin(known_i5.apply(Bio.Seq.reverse_complement))).any():
+        logging.warning(f'i5 might need to be reverse complemented for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
+    # i7 and i5 swapped
+    if (errors := df['index'].isin(known_i5) | df['index2'].isin(known_i7)).any():
+        logging.warning(f'i7 and i5 might be swapped for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
 
 def format_samplesheet(fname_in, fname_out):
     df = parse_samplesheet(fname_in)
@@ -10,18 +27,20 @@ def format_samplesheet(fname_in, fname_out):
 
     # check validity
     if (errors := df['Sample_ID'].duplicated()).any():
-        warnings.warn(f'Duplicate Sample_ID found: {df.loc[errors, "Sample_ID"].tolist()}')
+        logging.warning(f'Duplicate Sample_ID found: {df.loc[errors, "Sample_ID"].tolist()}')
     if (errors := df[['index', 'index2']].apply(tuple, axis=1).duplicated()).any():
-        warnings.warn(f'Duplicate index pair found: {df.loc[errors, ["index", "index2"]].values.tolist()}')
+        logging.warning(f'Duplicate index pair found: {df.loc[errors, ["index", "index2"]].values.tolist()}')
     if (errors := df['Sample_ID'].str.len() > 40).any():
-        warnings.warn(f'Sample_ID too long: {df.loc[errors, "Sample_ID"].tolist()}')
+        logging.warning(f'Sample_ID too long: {df.loc[errors, "Sample_ID"].tolist()}')
     if (errors := ~df['Sample_ID'].str.match(r'^[a-zA-Z0-9-_]+$')).any():
-        warnings.warn(f'Invalid characters in Sample_ID: {df.loc[errors, "Sample_ID"].tolist()}')
+        logging.warning(f'Invalid characters in Sample_ID: {df.loc[errors, "Sample_ID"].tolist()}')
     # make sure index is the right length
     if (errors := df['index'].str.len() != read_info['Index 1 (i7)']).any():
-        warnings.warn(f'index is the wrong length for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
+        logging.warning(f'index is the wrong length for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
     if (errors := df['index2'].str.len() != read_info['Index 2 (i5)']).any():
-        warnings.warn(f'index2 is the wrong length: {df.loc[errors, "Sample_ID"].tolist()}')
+        logging.warning(f'index2 is the wrong length: {df.loc[errors, "Sample_ID"].tolist()}')
+    # check against known indexes
+    check_indexes(df)
 
     # write out
     with open(fname_out, 'wt') as f:

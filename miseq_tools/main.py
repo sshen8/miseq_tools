@@ -4,8 +4,11 @@ from .quant_kapa import kapaquant
 from .quant_qubit import qubitquant
 from .pooling import pooling
 from .quant_combine import quant_combine
+import logging
 
 def main():
+    logging.basicConfig(format='%(levelname)-10s%(message)s', level=logging.INFO)
+
     parser = argparse.ArgumentParser(description="Tools for running Miseq")
     # subparser for sample sheet
     subparsers = parser.add_subparsers()

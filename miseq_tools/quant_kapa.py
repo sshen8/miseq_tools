@@ -6,8 +6,6 @@ import logging
 from .utils import parse_samplesheet, pooled_bp
 import matplotlib.pyplot as plt
 
-logging.basicConfig(format='%(levelname)-10s%(message)s', level=logging.INFO)
-
 def kapaquant(kapafolder, samplesheet, dilution):
     samples = parse_samplesheet(samplesheet)
     amplicon_sizes = pooled_bp(samples)
