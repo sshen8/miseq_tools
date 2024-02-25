@@ -1,0 +1,23 @@
+[build-system]
+requires = [
+    "setuptools>=60",
+    "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "miseq_tools"
+dynamic = ["version"]
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "pandas",
+    "scikit-learn",
+]
+
+[project.scripts]
+miseq-tools = "miseq_tools.main:main"
+
+[tool.setuptools]
+packages = ["miseq_tools"]
+
+[tool.setuptools_scm]
