@@ -11,10 +11,8 @@ def demux(samplesheet, stats):
     df_intended.rename("intended", inplace=True)
 
     df_actual = json.load(open(stats, "rt"))
-    assert len(df_actual["ConversionResults"]) == 1
-    df_actual = df_actual["ConversionResults"][0]
-    df_actual = pd.DataFrame(df_actual["DemuxResults"], columns=["SampleId", "NumberReads"]).set_index("SampleId").squeeze("columns")
-    df_actual.rename("actual", inplace=True)
+    df_actual = pd.concat([pd.DataFrame(df_actual_lane["DemuxResults"], columns=["SampleId", "NumberReads"]).set_index("SampleId").squeeze("columns") for df_actual_lane in df_actual["ConversionResults"]], names=["Lane"], keys=range(1, 1 + len(df_actual["ConversionResults"])), axis="columns")
+    df_actual = df_actual.sum(axis="columns").rename("actual")
 
     df = pd.merge(left=df_intended, right=df_actual, left_on="Sample_ID", right_index=True, how="outer")
     df_pool = df.groupby("Pool label").sum()
