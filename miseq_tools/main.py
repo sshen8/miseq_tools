@@ -37,6 +37,7 @@ def main():
     parser_pooling = subparsers.add_parser("pool", help="Figure out pooling")
     parser_pooling.add_argument("samplesheet", help="Sample sheet to use")
     parser_pooling.add_argument("quant_csv", help="Quantification data")
+    parser_pooling.add_argument("--pools", help="Number of pools", type=int, default=3)
     parser_pooling.set_defaults(func=pooling)
 
     parser_pre = subparsers.add_parser("pre", help="Full pre-Miseq pipeline: includes sheet, kapa, qubit, combine, and pool")
@@ -47,7 +48,7 @@ def main():
         kapaquant(kapafolder=kwargs['kapafolder'], samplesheet=kwargs['samplesheet'], dilution=1e4)
         qubitquant(samplesheet=kwargs['samplesheet'])
         quant_combine(kapa_fname="quant_kapa.csv", qubit_fname="quant_qubit.csv")
-        pooling(samplesheet=kwargs['samplesheet'], quant_csv="quant_combined.csv")
+        pooling(samplesheet=kwargs['samplesheet'], quant_csv="quant_combined.csv", pools=3)
     parser_pre.set_defaults(func=pipeline_pre)
 
     parser_demux = subparsers.add_parser("demux", help="Demuxing stats")

@@ -6,7 +6,7 @@ import numpy as np
 samplesheet = "SPS246 miseq - Sheet1.csv"
 quant_csv = "quant_combined.csv"
 
-def pooling(samplesheet, quant_csv):
+def pooling(samplesheet, quant_csv, pools: int):
     samples = parse_samplesheet(samplesheet)
     reads = pooled_reads(samples)
     concs = pd.read_csv(quant_csv, index_col=0)["nM"]
@@ -16,7 +16,7 @@ def pooling(samplesheet, quant_csv):
     desired_ul = 10
     min_ul_pipettable = 2
     ul = desired_ul * desired_nm / concs
-    model = sklearn.cluster.KMeans(n_clusters=4)
+    model = sklearn.cluster.KMeans(n_clusters=pools)
     clusters = pd.Series(model.fit_predict(ul.values.reshape(-1, 1)), index=ul.index)
     ul_water = desired_ul - ul.sum()
 
