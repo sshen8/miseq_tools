@@ -63,8 +63,10 @@ def kapaquant(kapafolder, samplesheet, dilution, standard_bp: int):
     conc_undiluted_mass = conc_undiluted * amplicon_sizes * 617.9 * 1e-6 # ng/uL
 
     fig, ax = plt.subplots()
-    pools = amplicon_sizes.index.to_series(index=[f'Unkn-{i:02d}' for i in range(1, len(amplicon_sizes) + 1)])
-    unkn_plot = unkn.join(pools, on="Content")
+    pools = amplicon_sizes.index.to_series(index=pd.RangeIndex(1, len(amplicon_sizes) + 1))
+    unkn_plot = unkn.copy()
+    unkn_plot["sample_id"] = unkn_plot.Content.str.extract(r'Unkn-(\d+)').astype(int)
+    unkn_plot = unkn_plot.join(pools, on="sample_id")
     std_plot = std.copy()
     std_plot["Pool label"] = "Standards"
     data_plot = pd.concat([std_plot, unkn_plot])
