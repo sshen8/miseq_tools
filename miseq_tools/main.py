@@ -19,11 +19,12 @@ def main():
     parser_samplesheet.add_argument("fname_in", help="Input file")
     parser_samplesheet.add_argument("-o", help="Output file", dest="fname_out", default="samplesheet.csv")
 
-    parser_kapa = subparsers.add_parser("kapa", help="Analyze KAPA quantification data")
+    parser_kapa = subparsers.add_parser("kapa", help="Analyze qPCR library quantification data")
     parser_kapa.set_defaults(func=kapaquant)
-    parser_kapa.add_argument("kapafolder", help="Folder containing KAPA data")
+    parser_kapa.add_argument("kapafolder", help="Folder containing qPCR data")
     parser_kapa.add_argument("samplesheet", help="Sample sheet to use")
-    parser_kapa.add_argument("--dilution", help="Dilution factor for KAPA quantification", type=float, default=1e4)
+    parser_kapa.add_argument("--dilution", help="Dilution factor of samples", type=float, default=1e4)
+    parser_kapa.add_argument("--standard-bp", help="Amplicon size (bp) of standards. 452 for KAPA, 399 for NEB.", type=int, default=399)
 
     parser_qubit = subparsers.add_parser("qubit", help="Analyze Qubit quantification data")
     parser_qubit.add_argument("samplesheet", help="Sample sheet to use")
@@ -45,7 +46,7 @@ def main():
     parser_pre.add_argument("kapafolder", help="Folder containing KAPA data")
     def pipeline_pre(**kwargs):
         format_samplesheet(fname_in=kwargs['samplesheet'], fname_out='samplesheet.csv')
-        kapaquant(kapafolder=kwargs['kapafolder'], samplesheet=kwargs['samplesheet'], dilution=1e4)
+        kapaquant(kapafolder=kwargs['kapafolder'], samplesheet=kwargs['samplesheet'], dilution=1e4, standard_bp=399)
         qubitquant(samplesheet=kwargs['samplesheet'])
         quant_combine(kapa_fname="quant_kapa.csv", qubit_fname="quant_qubit.csv")
         pooling(samplesheet=kwargs['samplesheet'], quant_csv="quant_combined.csv", pools=3)

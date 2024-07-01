@@ -6,7 +6,7 @@ import logging
 from .utils import parse_samplesheet, pooled_bp
 import matplotlib.pyplot as plt
 
-def kapaquant(kapafolder, samplesheet, dilution):
+def kapaquant(kapafolder, samplesheet, dilution, standard_bp: int):
     samples = parse_samplesheet(samplesheet)
     amplicon_sizes = pooled_bp(samples)
 
@@ -57,7 +57,7 @@ def kapaquant(kapafolder, samplesheet, dilution):
     avg_cq = unkn.groupby('Content')['Cq'].mean()
     avg_cq.index = amplicon_sizes.index
     conc = np.power(10, (avg_cq - intercept) / slope) # pM
-    conc_size_adjusted = conc * 452 / amplicon_sizes # pM
+    conc_size_adjusted = conc * standard_bp / amplicon_sizes # pM
     conc_undiluted = conc_size_adjusted * dilution / 1e3 # nM
     conc_undiluted_mass = conc_undiluted * amplicon_sizes * 617.9 * 1e-6 # ng/uL
 
