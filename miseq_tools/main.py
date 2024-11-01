@@ -12,7 +12,7 @@ def main():
     parser = argparse.ArgumentParser(description="Tools for running Miseq", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     # subparser for sample sheet
     subparsers = parser.add_subparsers(required=True)
-    parser.add_argument("--mpl-style", help="Matplotlib style to use", default="simon")
+    parser.add_argument("--mpl-style", help="Matplotlib style to use")
     parser.add_argument("--log-level", help="Log level", default="INFO", choices=logging._nameToLevel.keys())
     parser_samplesheet = subparsers.add_parser("sheet", help="Format sample sheet for Miseq")
     parser_samplesheet.set_defaults(func=format_samplesheet)
@@ -59,8 +59,9 @@ def main():
 
     args = parser.parse_args()
 
-    plt.style.use(args.mpl_style)
-    del args.mpl_style
+    if args.mpl_style:
+        plt.style.use(args.mpl_style)
+        del args.mpl_style
     logging.basicConfig(format='%(levelname)-10s%(message)s', level=args.log_level)
     del args.log_level
     kwargs = vars(args)
