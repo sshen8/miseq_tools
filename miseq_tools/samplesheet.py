@@ -20,7 +20,7 @@ def check_indexes(df):
     if (errors := df['index'].isin(known_i5) | df['index2'].isin(known_i7)).any():
         logging.warning(f'i7 and i5 might be swapped for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
 
-def format_samplesheet(fname_in, fname_out):
+def format_samplesheet(fname_in, fname_out, nextseq=False):
     df = parse_samplesheet(fname_in)
 
     read_info = pd.read_csv(fname_in, usecols=[9, 10], header=None, nrows=4, index_col=0).squeeze()
@@ -41,6 +41,10 @@ def format_samplesheet(fname_in, fname_out):
         logging.warning(f'index2 is the wrong length: {df.loc[errors, "Sample_ID"].tolist()}')
     # check against known indexes
     check_indexes(df)
+
+    # reverse complement i5 for nextseq if necessary
+    if nextseq:
+        df['index2'] = df['index2'].apply(Bio.Seq.reverse_complement)
 
     # write out
     with open(fname_out, 'wt') as f:

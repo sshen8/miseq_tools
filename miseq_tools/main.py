@@ -17,6 +17,7 @@ def main():
     parser_samplesheet = subparsers.add_parser("sheet", help="Format sample sheet for Miseq")
     parser_samplesheet.set_defaults(func=format_samplesheet)
     parser_samplesheet.add_argument("fname_in", help="Input file")
+    parser_samplesheet.add_argument("--nextseq", help="Reverse complements i5 for NextSeq 550", action="store_true")
     parser_samplesheet.add_argument("-o", help="Output file", dest="fname_out", default="samplesheet.csv")
 
     parser_kapa = subparsers.add_parser("kapa", help="Analyze qPCR library quantification data")
@@ -57,13 +58,12 @@ def main():
     parser_demux.add_argument("samplesheet", help="Sample sheet to use")
     parser_demux.add_argument("stats", help="Stats.json file from Miseq")
 
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
-    if args.mpl_style:
-        plt.style.use(args.mpl_style)
-        del args.mpl_style
-    logging.basicConfig(format='%(levelname)-10s%(message)s', level=args.log_level)
-    del args.log_level
-    kwargs = vars(args)
+    if mpl_style := args.pop("mpl_style", None):
+        plt.style.use(mpl_style)
+    if log_level := args.pop("log_level", None):
+        logging.basicConfig(format='%(levelname)-10s%(message)s', level=log_level)
+    func = args.pop("func")
 
-    args.func(**{k: v for k, v in kwargs.items() if k != "func"})
+    func(**args)
