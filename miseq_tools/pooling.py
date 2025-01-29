@@ -24,19 +24,45 @@ def _pools(num_reads: dict[str, int],
     ul = min_ul_total * desired_nm / concs
     assert all(not sample_name.startswith('Water') for sample_name in ul.index)
     assert all(not sample_name == 'Prev Pool' for sample_name in ul.index)
-    ul['Water 1'] = min_ul_total - ul.sum()
+    ul['Water'] = min_ul_total - ul.sum()
 
     # initial assign dilution factor groups
-    dilution_factors = pd.Series(None, index=ul.index, dtype=float)
-    while any(dilution_factors.isna()):
-        remaining_samples = dilution_factors[dilution_factors.isna()].index
-        dilution_factor = min_ul_pipettable / min(ul[remaining_samples])
-        if dilution_factor <= 1:
-            dilution_factors[remaining_samples] = 1
+    def _assign_dilution_factors(_ul):
+        _dilution_factors = pd.Series(None, index=_ul.index, dtype=float)
+        while any(_dilution_factors.isna()):
+            remaining_samples = _dilution_factors[_dilution_factors.isna()].index
+            dilution_factor = min_ul_pipettable / min(_ul[remaining_samples])
+            if dilution_factor <= 1:
+                _dilution_factors[remaining_samples] = 1
+                break
+            hypothetical_volumes = _ul[remaining_samples] * dilution_factor
+            samples_in_this_pool = hypothetical_volumes.index[hypothetical_volumes <= max_ul_pipettable]
+            _dilution_factors[samples_in_this_pool] = dilution_factor
+        return _dilution_factors
+    
+    # check previous pool volumes and dilute with water if necessary
+    def _split_water(_ul, _dilution_factors):
+        _ul_new = _ul.copy()
+        dilution_factors_list = sorted(_dilution_factors.unique(), reverse=True)
+        for i, dilution_factor in enumerate(dilution_factors_list, 1):
+            samples_in_previous_pool = _dilution_factors[_dilution_factors > dilution_factor].index
+            if len(samples_in_previous_pool) == 0:
+                continue
+            ul_prev_pool = _ul[samples_in_previous_pool].sum() * dilution_factor
+            if ul_prev_pool >= min_ul_pipettable:
+                continue
+            ul_water_split = (max_ul_pipettable - ul_prev_pool) / dilution_factor
+            _ul_new['Water'] -= ul_water_split
+            _ul_new[f'Water {i}'] = ul_water_split
             break
-        hypothetical_volumes = ul[remaining_samples] * dilution_factor
-        samples_in_this_pool = hypothetical_volumes.index[hypothetical_volumes <= max_ul_pipettable]
-        dilution_factors[samples_in_this_pool] = dilution_factor
+        return _ul_new
+
+    ul_old = None
+    ul_new = ul.copy()
+    while ul_old is None or not ul_old.equals(ul_new):
+        ul_old = ul_new.copy()
+        dilution_factors = _assign_dilution_factors(ul_new)
+        ul_new = _split_water(ul_new, dilution_factors)
 
     # calculate volumes per pool
     pools = []
@@ -46,9 +72,9 @@ def _pools(num_reads: dict[str, int],
         if len(samples_in_previous_pool) == 0:
             ul_prev_pool = dict()
         else:
-            ul_prev_pool = {'Prev Pool': ul[samples_in_previous_pool].sum() * dilution_factor}
+            ul_prev_pool = {'Prev Pool': ul_new[samples_in_previous_pool].sum() * dilution_factor}
         samples_in_this_pool = dilution_factors[dilution_factors == dilution_factor].index
-        ul_diluted = ul[samples_in_this_pool] * dilution_factor
+        ul_diluted = ul_new[samples_in_this_pool] * dilution_factor
         pools.append({
             **ul_diluted.to_dict(),
             **ul_prev_pool,
