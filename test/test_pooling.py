@@ -2,8 +2,9 @@ import pandas as pd
 from miseq_tools.pooling import _pools
 import pytest
 
+@pytest.mark.parametrize("min_ul_pipettable", [1, 2])
 @pytest.mark.parametrize("max_ul_pipettable", [10, 3])
-def test_pooling(max_ul_pipettable):
+def test_pooling(min_ul_pipettable, max_ul_pipettable):
     num_reads = pd.Series({
         "Sample1": 10000000,
         "Sample2": 20000000,
@@ -12,7 +13,6 @@ def test_pooling(max_ul_pipettable):
         "Sample1": 10,
         "Sample2": 8.5,
     })
-    min_ul_pipettable = 1
     pools = _pools(num_reads, concs, min_ul_pipettable=min_ul_pipettable, max_ul_pipettable=max_ul_pipettable)
 
     # check all pipetting volumes are within range
