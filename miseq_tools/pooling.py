@@ -75,6 +75,7 @@ def _pools(num_reads: dict[str, int],
             ul_prev_pool = {'Prev Pool': ul_new[samples_in_previous_pool].sum() * dilution_factor}
         samples_in_this_pool = dilution_factors[dilution_factors == dilution_factor].index
         ul_diluted = ul_new[samples_in_this_pool] * dilution_factor
+        ul_diluted.index = ul_diluted.index.map(lambda x: 'Water' if x.startswith('Water') else x)
         pools.append({
             **ul_diluted.to_dict(),
             **ul_prev_pool,
