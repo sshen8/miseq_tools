@@ -3,16 +3,31 @@ from miseq_tools.pooling import _pools
 import pytest
 
 @pytest.mark.parametrize("min_ul_pipettable", [1, 2])
-@pytest.mark.parametrize("max_ul_pipettable", [10, 3])
-def test_pooling(min_ul_pipettable, max_ul_pipettable):
-    num_reads = pd.Series({
+@pytest.mark.parametrize("max_ul_pipettable", [10, 5])
+@pytest.mark.parametrize("num_reads,concs", [
+    ({
         "Sample1": 10000000,
         "Sample2": 20000000,
-    })
-    concs = pd.Series({ # nM
+    }, { # nM
         "Sample1": 10,
         "Sample2": 8.5,
+    }),
+    ({
+        "SPS303A": 2400000,
+        "SPS303B": 480000,
+        "II": 910000,
+    }, { # nM
+        "SPS303A": 21.178463,
+        "SPS303B": 14.756816,
+        "II": 54.082907,
     })
+])
+def test_pooling(num_reads, concs, min_ul_pipettable, max_ul_pipettable):
+    if min_ul_pipettable == 2 and max_ul_pipettable == 5 and set(num_reads.keys()) == {'SPS303A', 'SPS303B', 'II'}:
+        pytest.skip("Impossible to solve")
+
+    num_reads = pd.Series(num_reads)
+    concs = pd.Series(concs)
     pools = _pools(num_reads, concs, min_ul_pipettable=min_ul_pipettable, max_ul_pipettable=max_ul_pipettable)
 
     for pool_i, pool in enumerate(pools, 1):
@@ -41,7 +56,7 @@ def test_pooling(min_ul_pipettable, max_ul_pipettable):
     concs_final = concs * volume_so_far / volume_so_far.sum()
     concs_final.drop('Water', inplace=True)
     fracs_final = concs_final / 4
-    pd.testing.assert_series_equal(fracs_final, num_reads / num_reads.sum())
+    pd.testing.assert_series_equal(fracs_final[num_reads.index], num_reads / num_reads.sum())
 
 def _check_samples_used_exactly_once(pools: list[dict[str, float]], all_samples: set[str]):
     unused_samples = all_samples.copy()

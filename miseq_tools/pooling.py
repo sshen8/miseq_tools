@@ -53,8 +53,10 @@ def _pools(num_reads: dict[str, int],
             if ul_prev_pool >= min_ul_pipettable:
                 continue
             ul_water_split = (max_ul_pipettable - ul_prev_pool) / dilution_factor
+            if i >= 2:
+                ul_water_split = min(ul_water_split, max_ul_pipettable / dilution_factors_list[i - 2])
             _ul_new['Water'] -= ul_water_split
-            _ul_new[f'Water {i}'] = ul_water_split
+            _ul_new[f'Water {i}'] = _ul_new.get(f'Water {i}', 0) + ul_water_split
             break
         return _ul_new
 
