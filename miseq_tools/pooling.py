@@ -1,11 +1,11 @@
 import pandas as pd
 from .utils import parse_samplesheet, pooled_reads
 
-def pooling(samplesheet, quant_csv):
+def pooling(samplesheet: str, quant_csv: str, **kwargs):
     samples = parse_samplesheet(samplesheet)
     num_reads = (pooled_reads(samples) * 1e6).astype(int)
     concs = pd.read_csv(quant_csv, index_col=0)["nM"]
-    pools = _pools(num_reads, concs)
+    pools = _pools(num_reads, concs, **kwargs)
     _check_samples_used_exactly_once(pools, set(num_reads.index))
     _check_dilution(pools, num_reads, concs)
     for i, pool in enumerate(pools, 1):
