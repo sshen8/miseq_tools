@@ -68,3 +68,27 @@ def test_check_samples_used_exactly_once(pools, expected):
     else:
         with pytest.raises(AssertionError):
             _check_samples_used_exactly_once(pools, all_samples)
+
+@pytest.mark.parametrize("kwargs,expected", [
+    (dict(
+        pools=[{'Sample1': 1, 'Sample2': 1}],
+        num_reads=pd.Series({'Sample1': 1, 'Sample2': 1}),
+        concs=pd.Series({'Sample1': 4, 'Sample2': 4}),
+    ), True),
+    (dict(
+        pools=[{'Sample1': 2, 'Sample2': 1}],
+        num_reads=pd.Series({'Sample1': 2, 'Sample2': 1}),
+        concs=pd.Series({'Sample1': 4, 'Sample2': 4}),
+    ), True),
+    (dict(
+        pools=[{'Sample1': 1, 'Sample2': 1}],
+        num_reads=pd.Series({'Sample1': 2, 'Sample2': 1}),
+        concs=pd.Series({'Sample1': 4, 'Sample2': 4}),
+    ), False),
+])
+def test_check_dilutions(kwargs, expected):
+    if expected:
+        _check_dilution(**kwargs)
+    else:
+        with pytest.raises(AssertionError):
+            _check_dilution(**kwargs)
