@@ -11,8 +11,9 @@ dependencies = [
     "numpy",
     "matplotlib",
     "pandas",
-    "scikit-learn",
     "biopython",
+    "seaborn",
+    "scipy",
 ]
 
 [project.optional-dependencies]
