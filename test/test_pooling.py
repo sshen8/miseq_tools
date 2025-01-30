@@ -30,6 +30,19 @@ def test_pooling(min_ul_pipettable, max_ul_pipettable):
     all_samples = set(num_reads.index)
     _check_samples_used_exactly_once(pools, all_samples)
 
+    # check dilution is correct
+    volume_so_far = pd.Series(0, index=num_reads.index, dtype=float)
+    for pool in pools:
+        volume_pool = pd.Series(pool, index=num_reads.index.to_list() + ['Water', 'Prev Pool']).fillna(0)
+        ul_prev_pool = volume_pool.pop('Prev Pool')
+        if ul_prev_pool > 0:
+            volume_pool += volume_so_far * ul_prev_pool / volume_so_far.sum()
+        volume_so_far = volume_pool
+    concs_final = concs * volume_so_far / volume_so_far.sum()
+    concs_final.drop('Water', inplace=True)
+    fracs_final = concs_final / 4
+    pd.testing.assert_series_equal(fracs_final, num_reads / num_reads.sum())
+
 def _check_samples_used_exactly_once(pools: list[dict[str, float]], all_samples: set[str]):
     unused_samples = all_samples.copy()
     for pool in pools:
