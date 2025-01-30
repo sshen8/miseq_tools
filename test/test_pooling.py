@@ -25,3 +25,37 @@ def test_pooling(min_ul_pipettable, max_ul_pipettable):
             # check water is just called "Water"
             if sample.startswith("Water"):
                 assert sample == "Water"
+
+    # check all samples have been added exactly once
+    all_samples = set(num_reads.index)
+    _check_samples_used_exactly_once(pools, all_samples)
+
+def _check_samples_used_exactly_once(pools: list[dict[str, float]], all_samples: set[str]):
+    unused_samples = all_samples.copy()
+    for pool in pools:
+        samples_in_this_pool = set(pool.keys()) - {'Water', 'Prev Pool'}
+        assert samples_in_this_pool.issubset(all_samples), f"Some sample(s) in pool {pool} are not valid samples"
+        assert samples_in_this_pool.issubset(unused_samples), f"Some sample(s) in pool {pool} have already been added to a previous pool"
+        unused_samples -= samples_in_this_pool
+    assert len(unused_samples) == 0, f"Samples {','.join(unused_samples)} have not been added to any pool"
+
+@pytest.mark.parametrize("pools,expected", [
+    # unused
+    ([], False),
+    ([{'Sample1': 1}], False),
+    ([{'Sample2': 1}], False),
+    # extra
+    ([{'Sample1': 1, 'Sample2': 1, 'Sample3': 1}], False),
+    # multiple
+    ([{'Sample1': 1, 'Sample2': 1}, {'Sample1': 1}], False),
+    # good
+    ([{'Sample1': 1, 'Sample2': 1}], True),
+    ([{'Sample1': 1}, {'Sample2': 1}], True),
+])
+def test_check_samples_used_exactly_once(pools, expected):
+    all_samples = {'Sample1', 'Sample2'}
+    if expected:
+        _check_samples_used_exactly_once(pools, all_samples)
+    else:
+        with pytest.raises(AssertionError):
+            _check_samples_used_exactly_once(pools, all_samples)
