@@ -1,5 +1,5 @@
 import pandas as pd
-from miseq_tools.pooling import _pools
+from miseq_tools.pooling import _pools, _check_samples_used_exactly_once, _check_dilution
 import pytest
 
 @pytest.mark.parametrize("min_ul_pipettable", [1, 2])
@@ -46,26 +46,7 @@ def test_pooling(num_reads, concs, min_ul_pipettable, max_ul_pipettable):
     _check_samples_used_exactly_once(pools, all_samples)
 
     # check dilution is correct
-    volume_so_far = pd.Series(0, index=num_reads.index, dtype=float)
-    for pool in pools:
-        volume_pool = pd.Series(pool, index=num_reads.index.to_list() + ['Water', 'Prev Pool']).fillna(0)
-        ul_prev_pool = volume_pool.pop('Prev Pool')
-        if ul_prev_pool > 0:
-            volume_pool += volume_so_far * ul_prev_pool / volume_so_far.sum()
-        volume_so_far = volume_pool
-    concs_final = concs * volume_so_far / volume_so_far.sum()
-    concs_final.drop('Water', inplace=True)
-    fracs_final = concs_final / 4
-    pd.testing.assert_series_equal(fracs_final[num_reads.index], num_reads / num_reads.sum())
-
-def _check_samples_used_exactly_once(pools: list[dict[str, float]], all_samples: set[str]):
-    unused_samples = all_samples.copy()
-    for pool in pools:
-        samples_in_this_pool = set(pool.keys()) - {'Water', 'Prev Pool'}
-        assert samples_in_this_pool.issubset(all_samples), f"Some sample(s) in pool {pool} are not valid samples"
-        assert samples_in_this_pool.issubset(unused_samples), f"Some sample(s) in pool {pool} have already been added to a previous pool"
-        unused_samples -= samples_in_this_pool
-    assert len(unused_samples) == 0, f"Samples {','.join(unused_samples)} have not been added to any pool"
+    _check_dilution(pools, num_reads, concs)
 
 @pytest.mark.parametrize("pools,expected", [
     # unused
