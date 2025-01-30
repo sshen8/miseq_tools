@@ -1,15 +1,16 @@
 import pandas as pd
 from .utils import parse_samplesheet, pooled_reads
 
-def pooling(samplesheet, quant_csv, pools: int):
+def pooling(samplesheet, quant_csv):
     samples = parse_samplesheet(samplesheet)
-    reads = (pooled_reads(samples) * 1e6).astype(int)
+    num_reads = (pooled_reads(samples) * 1e6).astype(int)
     concs = pd.read_csv(quant_csv, index_col=0)["nM"]
-    pools = _pools(reads, concs)
+    pools = _pools(num_reads, concs)
     for i, pool in enumerate(pools, 1):
         print(f"Pool {i}")
-        for sample, ul in pool.items():
-            print(f"{sample}: {ul:.2f} uL")
+        # show water first, then descending order of volume
+        for sample, ul in sorted(pool.items(), key=lambda item: (item[0] == 'Water', item[1]), reverse=True):
+            print(f"[ ] {sample:<10}:\t{ul:.2f} uL")
 
 def _pools(num_reads: dict[str, int],
            concs: dict[str, float],

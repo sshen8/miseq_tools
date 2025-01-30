@@ -39,7 +39,6 @@ def main():
     parser_pooling = subparsers.add_parser("pool", help="Figure out pooling")
     parser_pooling.add_argument("samplesheet", help="Sample sheet to use")
     parser_pooling.add_argument("quant_csv", help="Quantification data")
-    parser_pooling.add_argument("--pools", help="Number of pools", type=int, default=3)
     parser_pooling.set_defaults(func=pooling)
 
     parser_pre = subparsers.add_parser("pre", help="Full pre-Miseq pipeline: includes sheet, kapa, qubit, combine, and pool")
