@@ -52,7 +52,7 @@ def main():
         kapaquant(kapafolder=kwargs['kapafolder'], samplesheet=kwargs['samplesheet'], dilution=1e4, standard_bp=399)
         qubitquant(samplesheet=kwargs['samplesheet'])
         quant_combine(kapa_fname="quant_kapa.csv", qubit_fname="quant_qubit.csv")
-        pooling(samplesheet=kwargs['samplesheet'], quant_csv="quant_combined.csv", pools=3)
+        pooling(samplesheet=kwargs['samplesheet'], quant_csv="quant_combined.csv")
     parser_pre.set_defaults(func=pipeline_pre)
 
     parser_demux = subparsers.add_parser("demux", help="Demuxing stats")
