@@ -14,29 +14,29 @@ def main():
     subparsers = parser.add_subparsers(required=True)
     parser.add_argument("--mpl-style", help="Matplotlib style to use")
     parser.add_argument("--log-level", help="Log level", default="INFO", choices=logging._nameToLevel.keys())
-    parser_samplesheet = subparsers.add_parser("sheet", help="Format sample sheet for Miseq")
+    parser_samplesheet = subparsers.add_parser("sheet", help="Format sample sheet for Miseq", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_samplesheet.set_defaults(func=format_samplesheet)
     parser_samplesheet.add_argument("fname_in", help="Input file")
     parser_samplesheet.add_argument("--nextseq", help="Reverse complements i5 for NextSeq 550", action="store_true")
     parser_samplesheet.add_argument("-o", help="Output file", dest="fname_out", default="samplesheet.csv")
 
-    parser_kapa = subparsers.add_parser("kapa", help="Analyze qPCR library quantification data")
+    parser_kapa = subparsers.add_parser("kapa", help="Analyze qPCR library quantification data", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_kapa.set_defaults(func=kapaquant)
     parser_kapa.add_argument("kapafolder", help="Folder containing qPCR data")
     parser_kapa.add_argument("samplesheet", help="Sample sheet to use")
     parser_kapa.add_argument("--dilution", help="Dilution factor of samples", type=float, default=1e4)
     parser_kapa.add_argument("--standard-bp", help="Amplicon size (bp) of standards. 452 for KAPA, 399 for NEB.", type=int, default=399)
 
-    parser_qubit = subparsers.add_parser("qubit", help="Analyze Qubit quantification data")
+    parser_qubit = subparsers.add_parser("qubit", help="Analyze Qubit quantification data", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_qubit.add_argument("samplesheet", help="Sample sheet to use")
     parser_qubit.set_defaults(func=qubitquant)
 
-    parser_combine = subparsers.add_parser("combine", help="Combine KAPA and Qubit quantification data")
+    parser_combine = subparsers.add_parser("combine", help="Combine KAPA and Qubit quantification data", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_combine.add_argument("--kapa", help="KAPA quantification data", dest="kapa_fname", default="quant_kapa.csv")
     parser_combine.add_argument("--qubit", help="Qubit quantification data", dest="qubit_fname", default="quant_qubit.csv")
     parser_combine.set_defaults(func=quant_combine)
 
-    parser_pooling = subparsers.add_parser("pool", help="Figure out pooling")
+    parser_pooling = subparsers.add_parser("pool", help="Figure out pooling", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_pooling.add_argument("samplesheet", help="Sample sheet to use")
     parser_pooling.add_argument("quant_csv", help="Quantification data")
     parser_pooling.add_argument("--min-ul-pipettable", help="Minimum volume pipettable", type=float, default=2)
@@ -44,7 +44,7 @@ def main():
     parser_pooling.add_argument("--min-ul-total", help="Minimum total volume", type=float, default=10)
     parser_pooling.set_defaults(func=pooling)
 
-    parser_pre = subparsers.add_parser("pre", help="Full pre-Miseq pipeline: includes sheet, kapa, qubit, combine, and pool")
+    parser_pre = subparsers.add_parser("pre", help="Full pre-Miseq pipeline: includes sheet, kapa, qubit, combine, and pool", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_pre.add_argument("samplesheet", help="Sample sheet to use")
     parser_pre.add_argument("kapafolder", help="Folder containing KAPA data")
     def pipeline_pre(**kwargs):
@@ -55,7 +55,7 @@ def main():
         pooling(samplesheet=kwargs['samplesheet'], quant_csv="quant_combined.csv")
     parser_pre.set_defaults(func=pipeline_pre)
 
-    parser_demux = subparsers.add_parser("demux", help="Demuxing stats")
+    parser_demux = subparsers.add_parser("demux", help="Demuxing stats", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_demux.set_defaults(func=demux)
     parser_demux.add_argument("samplesheet", help="Sample sheet to use")
     parser_demux.add_argument("stats", help="Stats.json file from Miseq")

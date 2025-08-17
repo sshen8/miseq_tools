@@ -1,6 +1,7 @@
 import pandas as pd
 from miseq_tools.pooling import _pools, _check_samples_used_exactly_once, _check_dilution
 import pytest
+import subprocess
 
 @pytest.mark.parametrize("min_ul_pipettable", [1, 2])
 @pytest.mark.parametrize("max_ul_pipettable", [10, 5])
@@ -47,6 +48,10 @@ def test_pooling(num_reads, concs, min_ul_pipettable, max_ul_pipettable):
 
     # check dilution is correct
     _check_dilution(pools, num_reads, concs)
+
+def test_pool_cli():
+    out = subprocess.run(["python", "-m", "miseq_tools", "pool", "test/data/SPS303 miseq - Sheet1.csv", "test/data/quant_combined.csv"])
+    assert out.returncode == 0
 
 @pytest.mark.parametrize("pools,expected", [
     # unused

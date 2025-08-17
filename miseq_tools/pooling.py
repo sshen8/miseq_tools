@@ -28,6 +28,7 @@ def _pools(num_reads: dict[str, int],
     assert all(not sample_name.startswith('Water') for sample_name in ul.index)
     assert all(not sample_name == 'Prev Pool' for sample_name in ul.index)
     ul['Water'] = min_ul_total - ul.sum()
+    assert ul['Water'] >= 0, "Some sample(s) is/are not concentrated enough."
 
     # initial assign dilution factor groups
     def _assign_dilution_factors(_ul):
@@ -99,7 +100,7 @@ def _check_dilution(pools: list[dict[str, float]], num_reads: pd.Series, concs: 
     concs_final = concs * volume_so_far / volume_so_far.sum()
     concs_final.drop('Water', inplace=True)
     fracs_final = concs_final / 4
-    pd.testing.assert_series_equal(fracs_final[num_reads.index], num_reads / num_reads.sum())
+    pd.testing.assert_series_equal(fracs_final[num_reads.index], num_reads / num_reads.sum(), check_names=False)
 
 def _check_samples_used_exactly_once(pools: list[dict[str, float]], all_samples: set[str]):
     unused_samples = all_samples.copy()
