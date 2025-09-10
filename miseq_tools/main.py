@@ -42,6 +42,7 @@ def main():
     parser_pooling.add_argument("--min-ul-pipettable", help="Minimum volume pipettable", type=float, default=2)
     parser_pooling.add_argument("--max-ul-pipettable", help="Maximum volume pipettable", type=float, default=10)
     parser_pooling.add_argument("--min-ul-total", help="Minimum total volume", type=float, default=10)
+    parser_pooling.add_argument("--desired-nm", help="Desired nM concentration of final pool", type=float, default=4)
     parser_pooling.set_defaults(func=pooling)
 
     parser_pre = subparsers.add_parser("pre", help="Full pre-Miseq pipeline: includes sheet, kapa, qubit, combine, and pool", formatter_class=argparse.ArgumentDefaultsHelpFormatter)

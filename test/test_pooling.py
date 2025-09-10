@@ -23,13 +23,14 @@ import subprocess
         "II": 54.082907,
     })
 ])
-def test_pooling(num_reads, concs, min_ul_pipettable, max_ul_pipettable):
+@pytest.mark.parametrize("desired_nm", [4, 2])
+def test_pooling(num_reads, concs, min_ul_pipettable, max_ul_pipettable, desired_nm):
     if min_ul_pipettable == 2 and max_ul_pipettable == 5 and set(num_reads.keys()) == {'SPS303A', 'SPS303B', 'II'}:
         pytest.skip("Impossible to solve")
 
     num_reads = pd.Series(num_reads)
     concs = pd.Series(concs)
-    pools = _pools(num_reads, concs, min_ul_pipettable=min_ul_pipettable, max_ul_pipettable=max_ul_pipettable)
+    pools = _pools(num_reads, concs, min_ul_pipettable=min_ul_pipettable, max_ul_pipettable=max_ul_pipettable, desired_nm=desired_nm)
 
     for pool_i, pool in enumerate(pools, 1):
         for sample, ul in pool.items():
@@ -47,7 +48,7 @@ def test_pooling(num_reads, concs, min_ul_pipettable, max_ul_pipettable):
     _check_samples_used_exactly_once(pools, all_samples)
 
     # check dilution is correct
-    _check_dilution(pools, num_reads, concs)
+    _check_dilution(pools, num_reads, concs, desired_nm=desired_nm)
 
 def test_pool_cli():
     out = subprocess.run(["python", "-m", "miseq_tools", "pool", "test/data/SPS303 miseq - Sheet1.csv", "test/data/quant_combined.csv"])

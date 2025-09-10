@@ -1,13 +1,13 @@
 import pandas as pd
 from .utils import parse_samplesheet, pooled_reads
 
-def pooling(samplesheet: str, quant_csv: str, **kwargs):
+def pooling(samplesheet: str, quant_csv: str, desired_nm: float = 4, **kwargs):
     samples = parse_samplesheet(samplesheet)
     num_reads = (pooled_reads(samples) * 1e6).astype(int)
     concs = pd.read_csv(quant_csv, index_col=0)["nM"]
-    pools = _pools(num_reads, concs, **kwargs)
+    pools = _pools(num_reads, concs, desired_nm=desired_nm, **kwargs)
     _check_samples_used_exactly_once(pools, set(num_reads.index))
-    _check_dilution(pools, num_reads, concs)
+    _check_dilution(pools, num_reads, concs, desired_nm=desired_nm)
     for i, pool in enumerate(pools, 1):
         print(f"Pool {i}")
         # show water first, then descending order of volume
@@ -19,12 +19,13 @@ def _pools(num_reads: dict[str, int],
            min_ul_pipettable: float = 2,
            max_ul_pipettable: float = 10,
            min_ul_total: float = 10,
+           desired_nm: float = 4,
            ) -> list[dict[str, float]]:
     num_reads = pd.Series(num_reads)
     concs = pd.Series(concs)
     frac_reads = num_reads / num_reads.sum()
-    desired_nm = frac_reads * 4
-    ul = min_ul_total * desired_nm / concs
+    desired_nm_per_pool = frac_reads * desired_nm
+    ul = min_ul_total * desired_nm_per_pool / concs
     assert all(not sample_name.startswith('Water') for sample_name in ul.index)
     assert all(not sample_name == 'Prev Pool' for sample_name in ul.index)
     ul['Water'] = min_ul_total - ul.sum()
@@ -89,7 +90,7 @@ def _pools(num_reads: dict[str, int],
 
     return pools
 
-def _check_dilution(pools: list[dict[str, float]], num_reads: pd.Series, concs: pd.Series):
+def _check_dilution(pools: list[dict[str, float]], num_reads: pd.Series, concs: pd.Series, desired_nm: float = 4):
     volume_so_far = pd.Series(0, index=num_reads.index, dtype=float)
     for pool in pools:
         volume_pool = pd.Series(pool, index=num_reads.index.to_list() + ['Water', 'Prev Pool']).fillna(0)
@@ -99,7 +100,7 @@ def _check_dilution(pools: list[dict[str, float]], num_reads: pd.Series, concs: 
         volume_so_far = volume_pool
     concs_final = concs * volume_so_far / volume_so_far.sum()
     concs_final.drop('Water', inplace=True)
-    fracs_final = concs_final / 4
+    fracs_final = concs_final / desired_nm
     pd.testing.assert_series_equal(fracs_final[num_reads.index], num_reads / num_reads.sum(), check_names=False)
 
 def _check_samples_used_exactly_once(pools: list[dict[str, float]], all_samples: set[str]):
