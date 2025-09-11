@@ -20,7 +20,7 @@ def check_indexes(df):
     if (errors := df['index'].isin(known_i5) | df['index2'].isin(known_i7)).any():
         logging.warning(f'i7 and i5 might be swapped for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
 
-def format_samplesheet(fname_in, fname_out, nextseq=False):
+def format_samplesheet(fname_in, fname_out, nextseq=False, fix_invalid_characters=True):
     df = parse_samplesheet(fname_in)
 
     read_info = pd.read_csv(fname_in, usecols=[9, 10], header=None, nrows=4, index_col=0).squeeze()
@@ -34,6 +34,9 @@ def format_samplesheet(fname_in, fname_out, nextseq=False):
         logging.warning(f'Sample_ID too long: {df.loc[errors, "Sample_ID"].tolist()}')
     if (errors := ~df['Sample_ID'].str.match(r'^[a-zA-Z0-9-_]+$')).any():
         logging.warning(f'Invalid characters in Sample_ID: {df.loc[errors, "Sample_ID"].tolist()}')
+        if fix_invalid_characters:
+            df.loc[errors, 'Sample_ID'] = df.loc[errors, 'Sample_ID'].str.replace(r'[^a-zA-Z0-9-_]', '_', regex=True)
+            logging.warning(f'Invalid characters in Sample_ID have been replaced with underscores: {df.loc[errors, "Sample_ID"].tolist()}')
     # make sure index is the right length
     if (errors := df['index'].str.len() != read_info['Index 1 (i7)']).any():
         logging.warning(f'index is the wrong length for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
