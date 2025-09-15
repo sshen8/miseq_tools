@@ -3,6 +3,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 from .utils import parse_samplesheet
+import os
 
 def demux(samplesheet, stats):
     df_intended = parse_samplesheet(samplesheet)
@@ -10,13 +11,20 @@ def demux(samplesheet, stats):
     df_intended = df_intended["Reads (million)"] * 1e6
     df_intended.rename("intended", inplace=True)
 
-    df_actual = json.load(open(stats, "rt"))
-    df_actual = pd.concat([pd.DataFrame(df_actual_lane["DemuxResults"], columns=["SampleId", "NumberReads"]).set_index("SampleId").squeeze("columns") for df_actual_lane in df_actual["ConversionResults"]], names=["Lane"], keys=range(1, 1 + len(df_actual["ConversionResults"])), axis="columns")
-    df_actual = df_actual.sum(axis="columns").rename("actual")
+    if os.path.basename(stats) == "Stats.json":
+        df_actual = json.load(open(stats, "rt"))
+        df_actual = pd.concat([pd.DataFrame(df_actual_lane["DemuxResults"], columns=["SampleId", "NumberReads"]).set_index("SampleId").squeeze("columns") for df_actual_lane in df_actual["ConversionResults"]], names=["Lane"], keys=range(1, 1 + len(df_actual["ConversionResults"])), axis="columns")
+        df_actual = df_actual.sum(axis="columns").rename("actual")
+    elif os.path.basename(stats) == "Demultiplex_Stats.csv":
+        df_actual = pd.read_csv(stats)
+        df_actual = df_actual.set_index("SampleID")["# Reads"].rename("actual")
+        df_actual.drop(index="Undetermined", inplace=True, errors="ignore")
+    else:
+        raise ValueError(f"Unknown stats file format: {stats}")
 
     df = pd.merge(left=df_intended, right=df_actual, left_on="Sample_ID", right_index=True, how="outer")
     df_pool = df.groupby("Pool label").sum()
-    lim_min = min(df_pool['intended'].min(), df_pool['actual'].min())
+    lim_min = max(min(df_pool['intended'].min(), df_pool['actual'].min()), 1)
     lim_max = max(df_pool['intended'].max(), df_pool['actual'].max())
     lim_range = np.log10(lim_max) - np.log10(lim_min)
     lim = np.log10(lim_min) - 0.1 * lim_range, np.log10(lim_max) + 0.1 * lim_range

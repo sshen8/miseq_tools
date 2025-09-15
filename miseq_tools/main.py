@@ -60,7 +60,7 @@ def main():
     parser_demux = subparsers.add_parser("demux", help="Demuxing stats", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_demux.set_defaults(func=demux)
     parser_demux.add_argument("samplesheet", help="Sample sheet to use")
-    parser_demux.add_argument("stats", help="Stats.json file from Miseq")
+    parser_demux.add_argument("stats", help="Stats.json or Demuxltiplex_Stats.csv file from bcl2fastq or Dragen BCL Convert, respectively.")
 
     args = vars(parser.parse_args())
 
