@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from .utils import parse_samplesheet
 import os
+import logging
 
-def demux(samplesheet, stats):
+def demux(samplesheet, stats, out="demux_stats.pdf"):
     df_intended = parse_samplesheet(samplesheet)
     df_intended.set_index(["Pool label", "Sample_ID"], inplace=True)
     df_intended = df_intended["Reads (million)"] * 1e6
@@ -22,7 +23,9 @@ def demux(samplesheet, stats):
     else:
         raise ValueError(f"Unknown stats file format: {stats}")
 
-    df = pd.merge(left=df_intended, right=df_actual, left_on="Sample_ID", right_index=True, how="outer")
+    if len(unexpected := df_actual.index.difference(df_intended.index.get_level_values("Sample_ID"))):
+        logging.warning(f"Samples in stats but not in sample sheet: {unexpected.tolist()}")
+    df = pd.merge(left=df_intended, right=df_actual, left_on="Sample_ID", right_index=True, how="left")
     df_pool = df.groupby("Pool label").sum()
     lim_min = max(min(df_pool['intended'].min(), df_pool['actual'].min()), 1)
     lim_max = max(df_pool['intended'].max(), df_pool['actual'].max())
@@ -40,7 +43,8 @@ def demux(samplesheet, stats):
     ax.set_ylim(*lim)
     ax.set_xlabel("Intended num reads")
     ax.set_ylabel("Actual num reads")
-    fig.savefig("demux_stats.pdf", bbox_inches="tight")
+    fig.savefig(out, bbox_inches="tight")
     plt.close(fig)
 
     print((df_pool["actual"] / df_pool["intended"]).rename("actual/intended"))
+    return df_pool

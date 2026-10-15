@@ -5,6 +5,7 @@ from .quant_qubit import qubitquant
 from .pooling import pooling
 from .quant_combine import quant_combine
 from .demux_stats import demux
+from .download import run_tui, step
 import logging
 import matplotlib.pyplot as plt
 
@@ -61,6 +62,13 @@ def main():
     parser_demux.set_defaults(func=demux)
     parser_demux.add_argument("samplesheet", help="Sample sheet to use")
     parser_demux.add_argument("stats", help="Stats.json or Demuxltiplex_Stats.csv file from bcl2fastq or Dragen BCL Convert, respectively.")
+
+    parser_download = subparsers.add_parser("download", help="Interactive: pick sample sheet, output dir, and BaseSpace run, then submit a Slurm job that downloads and reports when ready", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser_download.set_defaults(func=run_tui)
+
+    parser_download_step = subparsers.add_parser("download-step", help="(internal) One step of the Slurm job submitted by `download`", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser_download_step.add_argument("state_path", help="download_state.json written by `download`")
+    parser_download_step.set_defaults(func=step)
 
     args = vars(parser.parse_args())
 

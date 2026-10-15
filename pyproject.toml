@@ -14,6 +14,8 @@ dependencies = [
     "biopython",
     "seaborn",
     "scipy",
+    "textual",
+    "requests",
 ]
 
 [project.optional-dependencies]
