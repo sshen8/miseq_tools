@@ -107,7 +107,7 @@ def step(state_path):
         logging.error(msg)
         state["phase"] = "failed"
         save()
-        _slack(state.get("slack_webhook"), f"Run {state['run_name']} failed: {msg}\nLog: {state['outdir']}")
+        # _slack(state.get("slack_webhook"), f"Run {state['run_name']} failed: {msg}\nLog: {state['outdir']}")
 
     def resubmit():
         save()
