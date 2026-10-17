@@ -31,62 +31,52 @@ def _pools(num_reads: dict[str, int],
     ul['Water'] = min_ul_total - ul.sum()
     assert ul['Water'] >= 0, "Some sample(s) is/are not concentrated enough."
 
-    # initial assign dilution factor groups
-    def _assign_dilution_factors(_ul):
-        _dilution_factors = pd.Series(None, index=_ul.index, dtype=float)
-        while any(_dilution_factors.isna()):
-            remaining_samples = _dilution_factors[_dilution_factors.isna()].index
-            dilution_factor = min_ul_pipettable / min(_ul[remaining_samples])
-            if dilution_factor <= 1:
-                _dilution_factors[remaining_samples] = 1
-                break
-            hypothetical_volumes = _ul[remaining_samples] * dilution_factor
-            samples_in_this_pool = hypothetical_volumes.index[hypothetical_volumes <= max_ul_pipettable]
-            _dilution_factors[samples_in_this_pool] = dilution_factor
-        return _dilution_factors
-    
-    # check previous pool volumes and dilute with water if necessary
-    def _split_water(_ul, _dilution_factors):
-        _ul_new = _ul.copy()
-        dilution_factors_list = sorted(_dilution_factors.unique(), reverse=True)
-        for i, dilution_factor in enumerate(dilution_factors_list, 1):
-            samples_in_previous_pool = _dilution_factors[_dilution_factors > dilution_factor].index
-            if len(samples_in_previous_pool) == 0:
-                continue
-            ul_prev_pool = _ul[samples_in_previous_pool].sum() * dilution_factor
-            if ul_prev_pool >= min_ul_pipettable:
-                continue
-            ul_water_split = (max_ul_pipettable - ul_prev_pool) / dilution_factor
-            if i >= 2:
-                ul_water_split = min(ul_water_split, max_ul_pipettable / dilution_factors_list[i - 2])
-            _ul_new['Water'] -= ul_water_split
-            _ul_new[f'Water {i}'] = _ul_new.get(f'Water {i}', 0) + ul_water_split
-            break
-        return _ul_new
-
-    ul_old = None
-    ul_new = ul.copy()
-    while ul_old is None or not ul_old.equals(ul_new):
-        ul_old = ul_new.copy()
-        dilution_factors = _assign_dilution_factors(ul_new)
-        ul_new = _split_water(ul_new, dilution_factors)
-
-    # calculate volumes per pool
+    # Build a chain of pools, most dilute first. Volumes in `ul` are in units of the final pool;
+    # pool i pipettes ul * dilution_factor of each of its components. Each pool is transferred
+    # into the next, and pure dilution pools (prev pool + water only) are inserted when needed.
+    remaining = ul.drop('Water').sort_values()
     pools = []
-    dilution_factors_list = sorted(dilution_factors.unique(), reverse=True)
-    for dilution_factor in dilution_factors_list:
-        samples_in_previous_pool = dilution_factors[dilution_factors > dilution_factor].index
-        if len(samples_in_previous_pool) == 0:
-            ul_prev_pool = dict()
+    dilution_factor = None
+    ul_so_far = 0.  # cumulative volume of everything in previous pools, in final pool units
+    while dilution_factor is None or dilution_factor > 1:
+        u = remaining.iloc[0] if len(remaining) else None
+        if dilution_factor is not None:
+            # largest dilution factor allowed for the next pool so that its smallest sample is pipettable
+            max_next_dilution_factor = max(max_ul_pipettable / u, 1) if u is not None else 1
+            # add water to the current pool so that it can be transferred into the next pool
+            ul_needed = min_ul_pipettable / max_next_dilution_factor - ul_so_far
+            if ul_needed > 0:
+                ul_water = min(max(ul_needed, min_ul_pipettable / dilution_factor), max_ul_pipettable / dilution_factor)
+                pools[-1]['Water'] = ul_water * dilution_factor
+                ul_so_far += ul_water
+                ul['Water'] -= ul_water
+                if ul_water < ul_needed:
+                    # still not enough volume, so dilute the current pool further before adding more samples
+                    dilution_factor = min_ul_pipettable / ul_so_far
+                    pools.append({'Prev Pool': min_ul_pipettable})
+                    continue
+        next_dilution_factor = max(min_ul_pipettable / u if u is not None else 1, 1)
+        if dilution_factor is not None:
+            next_dilution_factor = max(next_dilution_factor, min_ul_pipettable / ul_so_far)
+        if next_dilution_factor <= 1:
+            next_dilution_factor = 1
+            samples_in_this_pool = remaining.index
         else:
-            ul_prev_pool = {'Prev Pool': ul_new[samples_in_previous_pool].sum() * dilution_factor}
-        samples_in_this_pool = dilution_factors[dilution_factors == dilution_factor].index
-        ul_diluted = ul_new[samples_in_this_pool] * dilution_factor
-        ul_diluted.index = ul_diluted.index.map(lambda x: 'Water' if x.startswith('Water') else x)
-        pools.append({
-            **ul_diluted.to_dict(),
-            **ul_prev_pool,
-        })
+            samples_in_this_pool = remaining.index[remaining * next_dilution_factor <= max_ul_pipettable]
+        pool = (ul[samples_in_this_pool] * next_dilution_factor).to_dict()
+        if dilution_factor is not None:
+            ul_prev_pool = ul_so_far * next_dilution_factor
+            assert next_dilution_factor == 1 or ul_prev_pool <= max_ul_pipettable, "Unable to find a pooling scheme."
+            pool['Prev Pool'] = ul_prev_pool
+        pools.append(pool)
+        ul_so_far += ul[samples_in_this_pool].sum()
+        remaining = remaining.drop(samples_in_this_pool)
+        dilution_factor = next_dilution_factor
+
+    assert ul['Water'] >= 0, "Some sample(s) is/are not concentrated enough."
+    if ul['Water'] > 0:
+        assert ul['Water'] >= min_ul_pipettable, f"Final pool requires {ul['Water']:.2f} uL water, which is less than the minimum pipettable volume."
+        pools[-1]['Water'] = ul['Water']
 
     return pools
 

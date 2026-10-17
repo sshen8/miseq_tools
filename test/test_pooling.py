@@ -4,7 +4,7 @@ import pytest
 import subprocess
 
 @pytest.mark.parametrize("min_ul_pipettable", [1, 2])
-@pytest.mark.parametrize("max_ul_pipettable", [10, 5])
+@pytest.mark.parametrize("max_ul_pipettable", [10000, 10, 5])
 @pytest.mark.parametrize("num_reads,concs", [
     ({
         "Sample1": 10000000,
@@ -21,15 +21,32 @@ import subprocess
         "SPS303A": 21.178463,
         "SPS303B": 14.756816,
         "II": 54.082907,
-    })
+    }),
+    ({
+        "II": 100000,
+        "MUZ": 10000000,
+        "JW": 900000,
+        "SPS1": 5000000,
+        "SPS2": 5000000,
+    }, { # nM
+        "II": 63.76,
+        "MUZ": 1.02,
+        "JW": 16.06,
+        "SPS1": 2.07,
+        "SPS2": 2.40,
+    }),
 ])
-@pytest.mark.parametrize("desired_nm", [4, 2])
+@pytest.mark.parametrize("desired_nm", [4, 2, 1])
 def test_pooling(num_reads, concs, min_ul_pipettable, max_ul_pipettable, desired_nm):
-    if min_ul_pipettable == 2 and max_ul_pipettable == 5 and set(num_reads.keys()) == {'SPS303A', 'SPS303B', 'II'}:
-        pytest.skip("Impossible to solve")
-
     num_reads = pd.Series(num_reads)
     concs = pd.Series(concs)
+
+    # Feasibility check: If the total volume of all samples required to reach the desired concentration exceeds 100%, then it is impossible to create a pool with the desired concentration
+    if ((num_reads / num_reads.sum()) * desired_nm / concs).sum() > 1:
+        with pytest.raises(AssertionError, match="not concentrated enough"):
+            _pools(num_reads, concs, min_ul_pipettable=min_ul_pipettable, max_ul_pipettable=max_ul_pipettable, desired_nm=desired_nm)
+        return
+
     pools = _pools(num_reads, concs, min_ul_pipettable=min_ul_pipettable, max_ul_pipettable=max_ul_pipettable, desired_nm=desired_nm)
 
     for pool_i, pool in enumerate(pools, 1):
@@ -51,7 +68,7 @@ def test_pooling(num_reads, concs, min_ul_pipettable, max_ul_pipettable, desired
     _check_dilution(pools, num_reads, concs, desired_nm=desired_nm)
 
 def test_pool_cli():
-    out = subprocess.run(["python", "-m", "miseq_tools", "pool", "test/data/SPS303 miseq - Sheet1.csv", "test/data/quant_combined.csv"])
+    out = subprocess.run(["python", "-m", "miseq_tools", "pool", "test/data/SPS412 miseq - Sheet1.csv", "test/data/quant_combined.csv"])
     assert out.returncode == 0
 
 @pytest.mark.parametrize("pools,expected", [
