@@ -18,14 +18,15 @@ def demux(samplesheet, stats, out="demux_stats.pdf"):
         df_actual = df_actual.sum(axis="columns").rename("actual")
     elif os.path.basename(stats) == "Demultiplex_Stats.csv":
         df_actual = pd.read_csv(stats)
-        df_actual = df_actual.set_index("SampleID")["# Reads"].rename("actual")
+        # combine lanes
+        df_actual = df_actual.groupby("SampleID")["# Reads"].sum().rename("actual")
         df_actual.drop(index="Undetermined", inplace=True, errors="ignore")
     else:
         raise ValueError(f"Unknown stats file format: {stats}")
 
     if len(unexpected := df_actual.index.difference(df_intended.index.get_level_values("Sample_ID"))):
         logging.warning(f"Samples in stats but not in sample sheet: {unexpected.tolist()}")
-    df = pd.merge(left=df_intended, right=df_actual, left_on="Sample_ID", right_index=True, how="left")
+    df = pd.merge(left=df_intended, right=df_actual, left_on="Sample_ID", right_index=True, how="left", validate="one_to_one")
     df_pool = df.groupby("Pool label").sum()
     lim_min = max(min(df_pool['intended'].min(), df_pool['actual'].min()), 1)
     lim_max = max(df_pool['intended'].max(), df_pool['actual'].max())

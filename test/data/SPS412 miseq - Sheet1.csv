@@ -1,0 +1,7 @@
+Pool label,Sample_ID,I7_Index_ID,index,I5_Index_ID,index2,Reads (million),Amplicon size (bp),READ STRUCTURE,Read 1,277,
+SPS412,SPS412_91,Ad2_1,TAAGGCGA,SPS142_2,TAGGTATG,2.4,508,300-cycle 50M miseq i100,Index 1 (i7),8,
+,,,,,,,,,Index 2 (i5),8,
+,,,,,,,,,Read 2,45,
+,,,,,,,,,TOTAL,338,out of 338
+,,,,,,,,,,,
+,,,,,,,,SAMPLES READY BY,10/15/26,10:00 PM,

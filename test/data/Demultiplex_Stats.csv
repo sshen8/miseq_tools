@@ -1,0 +1,3 @@
+Lane,SampleID,Index,# Reads,# Perfect Index Reads,# One Mismatch Index Reads,# Two Mismatch Index Reads,% Reads,% Perfect Index Reads,% One Mismatch Index Reads,% Two Mismatch Index Reads
+1,SPS412_91,TAAGGCGA-TAGGTATG,305945,295415,10530,0,0.0103,0.9656,0.0344,0.0000
+2,SPS412_91,TAAGGCGA-TAGGTATG,255111,244462,10649,0,0.0088,0.9583,0.0417,0.0000
