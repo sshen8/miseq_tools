@@ -18,8 +18,10 @@ def main():
     parser_samplesheet = subparsers.add_parser("sheet", help="Format sample sheet for Miseq", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser_samplesheet.set_defaults(func=format_samplesheet)
     parser_samplesheet.add_argument("fname_in", help="Input file")
+    parser_samplesheet.add_argument("--run-name", help="Run name to use in sample sheet")
     parser_samplesheet.add_argument("--nextseq", help="Reverse complements i5 for NextSeq 550", action="store_true")
     parser_samplesheet.add_argument("--dont-fix-invalid-characters", help="Don't fix invalid characters in Sample_ID", action="store_false", dest="fix_invalid_characters")
+    parser_samplesheet.add_argument("--legacy-miseq", help="Use legacy MiSeq sample sheet format", action="store_true")
     parser_samplesheet.add_argument("-o", help="Output file", dest="fname_out", default="samplesheet.csv")
 
     parser_kapa = subparsers.add_parser("kapa", help="Analyze qPCR library quantification data", formatter_class=argparse.ArgumentDefaultsHelpFormatter)

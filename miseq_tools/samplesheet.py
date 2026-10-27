@@ -20,7 +20,7 @@ def check_indexes(df):
     if (errors := df['index'].isin(known_i5) | df['index2'].isin(known_i7)).any():
         logging.warning(f'i7 and i5 might be swapped for these samples: {df.loc[errors, "Sample_ID"].tolist()}')
 
-def format_samplesheet(fname_in, fname_out, nextseq=False, fix_invalid_characters=True):
+def format_samplesheet(fname_in, fname_out, run_name=None, nextseq=False, fix_invalid_characters=True, legacy_miseq=False):
     df = parse_samplesheet(fname_in)
 
     read_info = pd.read_csv(fname_in, usecols=[9, 10], header=None, nrows=4, index_col=0).squeeze()
@@ -49,24 +49,53 @@ def format_samplesheet(fname_in, fname_out, nextseq=False, fix_invalid_character
     if nextseq:
         df['index2'] = df['index2'].apply(Bio.Seq.reverse_complement)
 
+    df['mismatch_index1'] = 0
+    df['mismatch_index2'] = 0
+
     # write out
     with open(fname_out, 'wt') as f:
-        f.write(f"""[Header],,,,
-IEMFileVersion,4,,,
-Date,{datetime.date.today().strftime("%-m/%-d/%y")},,,
-Workflow,GenerateFASTQ,,,
-Application,FASTQ Only,,,
-Assay,TruSeq HT,,,
-Description,,,,
-Chemistry,Amplicon,,,
+        if not legacy_miseq:
+            f.write(f"""[Header],,,,
+FileFormatVersion,2,,,
+RunName,{run_name if run_name else datetime.date.today().strftime("%Y-%m-%d_MiSeqi100")},,,,
+InstrumentPlatform,MiSeqi100Series,,,
+IndexOrientation,Forward,,,
+AnalysisLocation,Local,,,
 ,,,,
 [Reads],,,,
-{read_info["Read 1"]},,,,
-{read_info["Read 2"]},,,,
+Read1Cycles,{read_info["Read 1"]},,,
+Read2Cycles,{read_info["Read 2"]},,,
+Index1Cycles,{read_info["Index 1 (i7)"]},,,
+Index2Cycles,{read_info["Index 2 (i5)"]},,,
 ,,,,
-[Settings],,,,
+[BCLConvert_Settings],,,,
+SoftwareVersion,4.4.6,,,
+OverrideCycles,R1:Y{read_info["Read 1"]};I1:I{read_info["Index 1 (i7)"]};I2:I{read_info["Index 2 (i5)"]};R2:Y{read_info["Read 2"]},,,
+FastqCompressionFormat,gzip,,,
+NoLaneSplitting,TRUE,,,
+GenerateFastqcMetrics,TRUE,,,
 ,,,,
-[Data],,,,
-Sample_ID,I7_Index_ID,index,I5_Index_ID,index2
+[BCLConvert_Data],,,,
+Sample_ID,Index,Index2,BarcodeMismatchesIndex1,BarcodeMismatchesIndex2
 """)
-        df[['Sample_ID', 'I7_Index_ID','index', 'I5_Index_ID', 'index2']].to_csv(f, index=False, header=False, mode='a')
+            df[['Sample_ID', 'index', 'index2', 'mismatch_index1', 'mismatch_index2']].to_csv(f, index=False, header=False, mode='a')
+        else:
+            f.write(f"""[Header],,,,
+    IEMFileVersion,4,,,
+    Date,{datetime.date.today().strftime("%-m/%-d/%y")},,,
+    Workflow,GenerateFASTQ,,,
+    Application,FASTQ Only,,,
+    Assay,TruSeq HT,,,
+    Description,,,,
+    Chemistry,Amplicon,,,
+    ,,,,
+    [Reads],,,,
+    {read_info["Read 1"]},,,,
+    {read_info["Read 2"]},,,,
+    ,,,,
+    [Settings],,,,
+    ,,,,
+    [Data],,,,
+    Sample_ID,I7_Index_ID,index,I5_Index_ID,index2
+    """)
+            df[['Sample_ID', 'I7_Index_ID','index', 'I5_Index_ID', 'index2']].to_csv(f, index=False, header=False, mode='a')
